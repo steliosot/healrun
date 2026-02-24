@@ -1,7 +1,6 @@
 /healrun
 /healrun.*
 *.log
-*.sum
 node_modules/
 debug
 .test
