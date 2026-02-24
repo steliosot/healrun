@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -37,7 +37,22 @@ jobs:
           CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
             go build -ldflags="-s -w" -o $BINARY_NAME ./cmd/healrun
 
-      - name: Upload release asset
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: healrun-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: healrun-${{ matrix.goos }}-${{ matrix.goarch }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
-          files: healrun-${{ matrix.goos }}-${{ matrix.goarch }}
+          files: ./artifacts/*/healrun-*
