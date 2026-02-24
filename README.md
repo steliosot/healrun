@@ -2,60 +2,33 @@
 
 Self-healing installation agent for shell commands.
 
-## Overview
-
-**healrun** wraps any shell command and automatically repairs failures using an LLM.
-
-When a command fails, healrun:
-1. Detects the failure
-2. Collects system environment context
-3. Requests repair commands from an LLM
-4. Applies the fixes safely
-5. Retries the original command
-6. Stops after 3 repair attempts
-
-## Installation
+## Quick Install
 
 ```bash
-# Download or build from source
-# Build from source
-go build -ldflags="-s -w" -o healrun ./cmd/healrun
-sudo cp healrun /usr/local/bin/
-chmod +x healrun
+curl -fsSL https://github.com/steliosot/healrun/raw/main/scripts/install.sh | sh
 ```
 
-## Quick Start
+## Usage
 
 ```bash
-healrun "pip install torch"
+healrun "<command>"
 ```
 
 ## Configuration
 
-Create `~/.healrun/config.yaml`:
+Copy example config:
 
-```yaml
-api_keys:
-  openai: "sk-..."
-
-model:
-  provider: openai  # openai, ollama, dummy
-  openai_model: gpt-4o-mini
-  ollama_host: http://localhost:11434
-  ollama_model: llama3.2
-
-policies:
-  allowed:
-    - "./scripts/safe-build.sh"
-  blocked:
-    - "dangerous-tool --force"
+```bash
+mkdir -p ~/.healrun
+cp config.example.yaml ~/.healrun/config.yaml
+# Edit ~/.healrun/config.yaml with your API keys
 ```
 
-Environment variables override the config file:
+Or use environment variables:
 
 | Variable | Description |
 |----------|-------------|
-| `HEALRUN_MODEL_PROVIDER` | Model provider (openai, ollama, dummy) |
+| `HEALRUN_MODEL_PROVIDER` | Model (openai, ollama, dummy) |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `HEALRUN_OPENAI_MODEL` | OpenAI model name |
 | `HEALRUN_OLLAMA_HOST` | Ollama server URL |
@@ -63,22 +36,40 @@ Environment variables override the config file:
 | `HEALRUN_AUTO_APPROVE` | Auto-approve fixes |
 | `HEALRUN_DEBUG` | Enable debug logging |
 
-## Usage
+## Examples
 
 ```bash
-healrun "<command>"
-healrun --auto-approve "npm install"
-healrun --debug "pip install torch"
-healrun --dry-run "docker build ."
-HEALRUN_MODEL_PROVIDER=openai healrun "apt-get install python3-pip"
+# Python package
+healrun "pip install torch"
+
+# Node.js
+healrun npm install react
+
+# System packages
+healrun "apt-get install python3-pip"
+
+# Docker
+healrun docker build .
+
+# With flags
+healrun --auto-approve "npm install bcrypt"
+healrun --debug "pip install numpy"
+healrun --dry-run "pip install pytorch"
 ```
 
 ## Features
 
-- **Real-time Output**: Command output streamed to terminal
-- **Safety Layer**: Blocks dangerous commands (`rm -rf /`, `shutdown`, etc.)
-- **Docker Mode**: Auto-approves fixes, no interactive prompts
-- **Robust**: Graceful error handling, proper exit codes
+- **Auto-repair**: Detects failures and applies fixes
+- **Safety**: Blocks dangerous commands
+- **Docker**: Auto-approves in Docker, no prompts
+- **Models**: OpenAI, Ollama, or dummy mode
+
+## Build
+
+```bash
+go build -ldflags="-s -w" -o healrun ./cmd/healrun
+sudo cp healrun /usr/local/bin/
+```
 
 ## License
 

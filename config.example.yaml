@@ -1,0 +1,12 @@
+api_keys:
+  openai: ""  # Set your OpenAI API key, or use OPENAI_API_KEY env var
+
+model:
+  provider: dummy  # Options: dummy, openai, ollama
+  openai_model: gpt-4o-mini
+  ollama_host: http://localhost:11434
+  ollama_model: llama3.2
+
+policies:
+  allowed: []   # Add custom allowed commands/patterns
+  blocked: []   # Add custom blocked commands/patterns
