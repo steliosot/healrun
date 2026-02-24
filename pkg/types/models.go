@@ -8,19 +8,29 @@ type CommandResult struct {
 	Success  bool
 }
 
+// FixAttempt represents an attempt to fix a failed command
+type FixAttempt struct {
+	Command      string
+	Success      bool
+	ErrorMessage string
+	Output       string
+	AttemptNum   int
+}
+
 // Context represents system environment context for LLM analysis
 type Context struct {
-	OS             string `json:"os"`
-	Distro         string `json:"distro,omitempty"`
-	Architecture   string `json:"architecture"`
-	Shell          string `json:"shell"`
-	PackageManager string `json:"package_manager,omitempty"`
-	Command        string `json:"command"`
-	ExitCode       int    `json:"exit_code"`
-	Logs           string `json:"logs"`
-	CWD            string `json:"cwd"`
-	InDocker       bool   `json:"in_docker"`
-	InCI           bool   `json:"in_ci"`
+	OS             string       `json:"os"`
+	Distro         string       `json:"distro,omitempty"`
+	Architecture   string       `json:"architecture"`
+	Shell          string       `json:"shell"`
+	PackageManager string       `json:"package_manager,omitempty"`
+	Command        string       `json:"command"`
+	ExitCode       int          `json:"exit_code"`
+	Logs           string       `json:"logs"`
+	CWD            string       `json:"cwd"`
+	InDocker       bool         `json:"in_docker"`
+	InCI           bool         `json:"in_ci"`
+	RepairHistory  []FixAttempt `json:"repair_history"`
 }
 
 // Config represents the agent configuration

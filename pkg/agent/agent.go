@@ -16,9 +16,11 @@ import (
 
 // Agent represents the self-healing agent
 type Agent struct {
-	config       *types.Config
-	adapter      types.ModelAdapter
-	appliedFixes map[string]bool
+	config              *types.Config
+	adapter             types.ModelAdapter
+	appliedFixes        map[string]bool
+	repairHistory       []types.FixAttempt
+	totalRepairAttempts int
 }
 
 func shouldReplaceExecutable(original, fix string) bool {
@@ -126,9 +128,10 @@ func NewAgent(config *types.Config) (*Agent, error) {
 	}
 
 	return &Agent{
-		config:       config,
-		adapter:      adapter,
-		appliedFixes: make(map[string]bool),
+		config:        config,
+		adapter:       adapter,
+		appliedFixes:  make(map[string]bool),
+		repairHistory: make([]types.FixAttempt, 0),
 	}, nil
 }
 
@@ -167,6 +170,7 @@ func (a *Agent) RunWithAutoRepair(command string) (*types.CommandResult, error) 
 		totalRounds++
 
 		ctx := context.FromCollect(command, result.ExitCode, combinedLogs)
+		ctx.RepairHistory = a.repairHistory
 		sig := context.FailureSignature(ctx)
 		sigAttempts[sig]++
 		attempt := sigAttempts[sig]
@@ -295,17 +299,24 @@ func (a *Agent) RunWithAutoRepair(command string) (*types.CommandResult, error) 
 				logger.Printf("  → %s", fix)
 			}
 
+			a.totalRepairAttempts++
 			fixResult, err := runner.RunCommand(fix)
+			fixAttempt := types.FixAttempt{
+				Command:    fix,
+				AttemptNum: a.totalRepairAttempts,
+			}
 			if err != nil {
 				logger.Printf("  ⚠️  Error running fix: %v\n", err)
 				allApplied = false
+				fixAttempt.Success = false
+				fixAttempt.ErrorMessage = err.Error()
 				logger.Write("FIX_FAILED", fmt.Sprintf("Fix failed: %s", fix))
-				continue
-			}
-
-			if !fixResult.Success {
+			} else if !fixResult.Success {
 				logger.Printf("  ⚠️  Fix command failed\n")
 				allApplied = false
+				fixAttempt.Success = false
+				fixAttempt.ErrorMessage = fixResult.Stderr
+				fixAttempt.Output = fixResult.Stdout + fixResult.Stderr
 				logger.Write("FIX_FAILED", fmt.Sprintf("Fix failed: %s", fix))
 			} else {
 				if a.config.InDocker {
@@ -314,8 +325,11 @@ func (a *Agent) RunWithAutoRepair(command string) (*types.CommandResult, error) 
 					logger.Printf("  ✔ Fix applied\n")
 				}
 				a.appliedFixes[fix] = true
+				fixAttempt.Success = true
+				fixAttempt.Output = fixResult.Stdout + fixResult.Stderr
 				logger.Write("FIX_APPLIED", fmt.Sprintf("Fix applied: %s", fix))
 			}
+			a.repairHistory = append(a.repairHistory, fixAttempt)
 		}
 
 		if !appliedAny {

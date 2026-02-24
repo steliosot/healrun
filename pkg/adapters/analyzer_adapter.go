@@ -459,6 +459,29 @@ func (a *AnalyzerAdapter) suggestCommandInstall(ctx *types.Context) ([]string, e
 	// Map common executables to the package/formula name.
 	baseCmd = mapExecutableToPackage(baseCmd)
 
+	// Check if we've already tried and failed to install this
+	for _, attempt := range ctx.RepairHistory {
+		if attempt.Command == fmt.Sprintf("apt-get install -y %s", baseCmd) && !attempt.Success {
+			// Already tried simple install and it failed, try alternative approach
+			if strings.Contains(attempt.ErrorMessage, "not available") || strings.Contains(attempt.Output, "not available") {
+				// Check for Docker-specific fixes
+				if dockerFix, dErr := a.checkAptPackageNotAvailable(ctx, baseCmd); dockerFix != nil {
+					return dockerFix, dErr
+				}
+				alts, aErr := a.suggestAlternativeInstall(baseCmd, ctx)
+				if alts != nil {
+					return alts, aErr
+				}
+				if aErr != nil {
+					return nil, aErr
+				}
+			}
+			if strings.Contains(attempt.ErrorMessage, "Unable to locate") || strings.Contains(attempt.Output, "Unable to locate") {
+				return []string{"apt-get update", fmt.Sprintf("apt-get install -y %s", baseCmd)}, nil
+			}
+		}
+	}
+
 	switch runtime.GOOS {
 	case "linux":
 		pm := ctx.PackageManager
@@ -481,6 +504,51 @@ func (a *AnalyzerAdapter) suggestCommandInstall(ctx *types.Context) ([]string, e
 	}
 
 	return nil, fmt.Errorf("repair stopped - unable to suggest package manager")
+}
+
+func (a *AnalyzerAdapter) suggestAlternativeInstall(baseCmd string, ctx *types.Context) ([]string, error) {
+	pm := ctx.PackageManager
+	if pm == "" {
+		pm = "apt"
+	}
+
+	altPackages := map[string][]string{
+		"docker": {"docker.io", "docker-ce"},
+	}
+
+	alts, ok := altPackages[strings.ToLower(baseCmd)]
+	if !ok {
+		return nil, fmt.Errorf("repair stopped - package '%s' not available in repositories", baseCmd)
+	}
+
+	if pm == "apt" {
+		return []string{fmt.Sprintf("apt-get install -y %s", alts[0])}, nil
+	}
+
+	return nil, fmt.Errorf("repair stopped - unable to suggest alternative package for: %s", baseCmd)
+}
+
+// checkAptPackageNotAvailable checks if an apt package is not available and suggests Docker install script
+func (a *AnalyzerAdapter) checkAptPackageNotAvailable(ctx *types.Context, baseCmd string) ([]string, error) {
+	pm := ctx.PackageManager
+	if pm != "apt" {
+		return nil, nil
+	}
+
+	for _, attempt := range ctx.RepairHistory {
+		if strings.Contains(attempt.ErrorMessage, "not available") || strings.Contains(attempt.Output, "not available") {
+			if strings.Contains(attempt.Command, baseCmd) {
+				// Check if this is Docker and suggest the official script
+				if strings.Contains(strings.ToLower(baseCmd), "docker") {
+					return []string{
+						"curl -fsSL https://get.docker.com -o get-docker.sh",
+						"sh get-docker.sh",
+					}, nil
+				}
+			}
+		}
+	}
+	return nil, nil
 }
 
 // suggestCertificateFix suggests fixes for SSL certificate errors

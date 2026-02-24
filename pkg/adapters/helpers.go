@@ -39,9 +39,36 @@ OS: ` + ctx.OS + "\n"
 		prompt += fmt.Sprintf("Package manager: %s\n", ctx.PackageManager)
 	}
 
+	if len(ctx.RepairHistory) > 0 {
+		prompt += "\nPrevious repair attempts:\n"
+		for i, attempt := range ctx.RepairHistory {
+			status := "FAILED"
+			if attempt.Success {
+				status = "SUCCESS"
+			}
+			prompt += fmt.Sprintf("  %d. %s [%s]\n", i+1, attempt.Command, status)
+			if !attempt.Success && (attempt.ErrorMessage != "" || attempt.Output != "") {
+				if attempt.ErrorMessage != "" {
+					prompt += fmt.Sprintf("     Error: %s\n", attempt.ErrorMessage)
+				}
+				if attempt.Output != "" {
+					prompt += fmt.Sprintf("     Output: %s\n", truncateOutput(attempt.Output, 200))
+				}
+			}
+		}
+		prompt += "\n"
+	}
+
 	prompt += "Logs:\n" + ctx.Logs + "\n"
 
 	return prompt
+}
+
+func truncateOutput(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // parseCommands parses LLM response into a list of shell commands
