@@ -11,3 +11,4 @@ debug
 index.html*
 package*.json
 .bak
+.healrun-venv/
