@@ -1,6 +1,6 @@
 # healrun
 
-Automatically fixes failing installation commands.
+Healrun detects broken install steps and automatically fixes them with your LLM until the setup succeeds.
 
 ## Quick Install
 
