@@ -1,5 +1,5 @@
-healrun
-healrun.*
+/healrun
+/healrun.*
 *.log
 *.sum
 node_modules/
