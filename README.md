@@ -1,6 +1,6 @@
 # healrun
 
-Self-healing installation agent for shell commands.
+Automatically fixes failing installation commands.
 
 ## Quick Install
 
