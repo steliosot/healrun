@@ -1,6 +1,6 @@
 # healrun
 
-Healrun detects broken install steps and automatically fixes them with your LLM until the setup succeeds.
+Healrun automatically detects broken install steps and fixes them with your LLM until all the setup succeeds.
 
 ## Quick Install
 
