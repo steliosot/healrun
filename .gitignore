@@ -1,0 +1,9 @@
+healrun
+*.log
+*.sum
+node_modules/
+debug
+.test
+.DS_Store
+*.cfg
+*.env
